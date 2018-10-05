@@ -1,6 +1,4 @@
-const { ApolloServer, gql, PubSub, withFilter } = require('apollo-server');
-
-
+const { ApolloServer, gql } = require('apollo-server');
 
 let employees = [
   {
@@ -63,36 +61,9 @@ const typeDefs = gql`
     changeEmployeeName(id: Int!, name: String!): Employee
     changeEmployer(id: Int!, employerId: Int!): Employee
   }
-
-  type Subscription {
-    newEmployee(employerId: Int): Employee
-  }
 `;
 
-const pubsub = new PubSub();
-
-// subscription tags
-const NEW_EMPLOYEE = 'NEW_EMPLOYEE';
-
 const resolvers = {
-  Subscription: {
-    newEmployee: {
-      // Additional event labels can be passed to asyncIterator creation
-      subscribe: withFilter(
-        () => pubsub.asyncIterator([NEW_EMPLOYEE]),
-        (payload, args) => {
-          console.log('payload: ', payload);
-          console.log('args: ', args);
-          return (!args.employerId || payload.newEmployee.employerId === args.employerId);
-        },
-      ),
-      resolve: (payload) => ({
-        id: payload.newEmployee.id,
-        name: `${payload.newEmployee.name} Phd`,
-        employerId: payload.newEmployee.employerId,
-      }),
-    },
-  },
   Query: {
     employer: (_, args) => employers.filter(e => e.id === args.id)[0],
     employee: (_, args) => employees.filter(e => e.id === args.id)[0],
@@ -121,7 +92,6 @@ const resolvers = {
         employerId: args.employerId,
       };
       employees.push(newEmployee);
-      pubsub.publish(NEW_EMPLOYEE, { newEmployee: newEmployee })
       return newEmployee;
     },
     removeEmployee: (_, args) => {
